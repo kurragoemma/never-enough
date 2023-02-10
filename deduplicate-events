@@ -1,0 +1,31 @@
+  This query was created as a solution to a bizarre inflated event count in GA4. 
+For every occurance of the event, 9 to 11 events of exactly the same kind would be sent. 
+After trying everything I can in vain, I realised that I have to deduplicate the count afterwards. 
+
+WITH
+session_events AS
+(
+SELECT
+  event_timestamp,
+  (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'action') AS event_action,
+  (SELECT CONCAT(user_pseudo_id, '.', value.int_value) FROM UNNEST(event_params) WHERE key = 'ga_session_id') AS session_id
+FROM
+  `your_dataset.events_*`
+WHERE
+  _TABLE_SUFFIX BETWEEN '20220920'AND '20220921'
+  AND event_name = 'event_name'
+),
+
+deduplicated AS (
+SELECT 
+  session_id,
+  event_timestamp
+FROM
+  session_events
+WHERE
+  event_action = "that_event_name_action"
+QUALIFY
+  TIMESTAMP_DIFF(TIMESTAMP_MICROS(LEAD(event_timestamp) OVER (PARTITION BY session_id ORDER BY event_timestamp)), TIMESTAMP_MICROS(event_timestamp), SECOND) > 1
+)
+
+SELECT * FROM deduplicated

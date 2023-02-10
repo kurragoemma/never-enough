@@ -1,6 +1,6 @@
 This query was created as a solution to a bizarre inflated event count in GA4. 
 For every occurance of the event, 9 to 11 events of exactly the same kind would be sent. 
-After trying everything I can in vain, I realised that I have to deduplicate the count afterwards. 
+After trying everything I could in vain, I realised that I have to manually deduplicate the count. 
 The query aims at setting an arbitrary time interval between two events. Any occurance below the interval will be excluded.
 
 WITH

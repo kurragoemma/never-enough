@@ -1,0 +1,60 @@
+This query was written in the old days, as indicated by the schema of Universal Analytics. 
+Nevertheless it's one of the queries that left the deepest impression in me. 
+
+After running this query through some data, I came to the conclusion that lots of potential buyers drop out because of invalid coupons.
+People were even trying to update the voucher by changing letters and numbers, and failed.
+Maybe we could keep them by giving away a 10% coupon? 
+Maybe we could make the coupon field stand out less so it doesn't promt people to leave the site and search? 
+I presented my findings to different stakeholders, and this finally led to further A/B testing after I've left the company.
+
+The query aims at finding aggregating the top events visitors trigger before their exit. I believe it gives us a hint of the reason. 
+However, the insight derived from this analysis is still very limited. 
+To find out the real "why" behind consumer behaviour, I must recommend using qualitative customer research. 
+
+SELECT
+  eventAction,
+  COUNT(eventAction) AS total_events
+FROM (
+  SELECT
+    eventAction,
+    page,
+    page_type,
+    ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY hitNumber DESC) AS row_number,
+    COUNT(*) OVER (PARTITION BY session_id) AS total_rows
+  FROM (
+    SELECT
+      visitId AS session_id,
+      page.pagePath AS page,
+      eventInfo.eventAction,
+      hitNumber,
+      (
+      SELECT
+        VALUE
+      FROM
+        UNNEST(ga.customDimensions)
+      WHERE
+        INDEX = 26) AS custom_data_source,
+      (
+      SELECT
+        VALUE
+      FROM
+        UNNEST(h.customDimensions)
+      WHERE
+        INDEX = 12) AS page_type
+    FROM
+      `your_dataset.ga_sessions_*` AS ga,
+      UNNEST(ga.hits) AS h
+    WHERE
+      _TABLE_SUFFIX BETWEEN "20220501"
+      AND "20220506"
+      AND h.type="EVENT")
+  WHERE
+    REGEXP_CONTAINS(custom_data_source, 'Web Mobile') )
+WHERE
+  total_rows > 2
+  AND row_number = 1
+  AND CONTAINS_SUBSTR(page_type, 'Checkout')
+GROUP BY
+  eventAction
+ORDER BY
+  total_events DESC

@@ -1,0 +1,18 @@
+This query aims at finding the ssers who triggered both event A and B in a given time frame, regardless of sequence. 
+
+WITH a AS(
+SELECT user_pseudo_id, event_name
+FROM `your_dataset.events_*`
+WHERE _TABLE_SUFFIX BETWEEN '20221207' AND FORMAT_DATE('%Y%m%d',DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY))
+AND event_name='A'
+),
+b AS(
+SELECT user_pseudo_id, event_name
+FROM `your_dataset.events_*`
+WHERE _TABLE_SUFFIX BETWEEN '20221207' AND FORMAT_DATE('%Y%m%d',DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY))
+AND event_name='B' 
+)
+
+SELECT a.user_pseudo_id FROM a JOIN (SELECT user_pseudo_id FROM b) AS b2 ON a.user_pseudo_id = b2.user_pseudo_id
+
+

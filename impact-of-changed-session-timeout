@@ -1,0 +1,44 @@
+I had this boss. Well, no words suffice to describe him.
+At the company where I worked with him, the session timeout of Universal Analytics was set to the maximum of four hours, 
+aiming at including as many conversions as possible.  
+One day my boss asked me to change it to 30 minutes instead. And he was certain. 
+And so I did. And another day he told me that our marketing department complained about the dropped conversion rate.
+He asked me to look into how many the affected users were. And I wrote the query below. 
+They were pretty many :) 
+
+SELECT
+ *
+FROM (
+ SELECT
+   sid,
+   MAX(time_until_next_hit) AS max_time_until_next
+ FROM (
+   SELECT
+     sid,
+     hit_number,
+     TIMESTAMP_DIFF(TIMESTAMP(next_hit_timestamp), TIMESTAMP(hit_timestamp), MINUTE) AS time_until_next_hit
+   FROM (
+     SELECT
+       sid,
+       hit_timestamp,
+       hit_number,
+       LEAD(hit_timestamp) OVER (PARTITION BY sid ORDER BY hit_number) AS next_hit_timestamp
+     FROM (
+       SELECT
+         CONCAT(fullVisitorId, CAST(visitId AS STRING)) AS sid,
+         h.hitNumber AS hit_number,
+         TIMESTAMP_SECONDS(visitStartTime + CAST(h.time/1000 AS INT64)) AS hit_timestamp
+       FROM
+         `boozt-datalake.46041008.ga_sessions_*` AS ga,
+         UNNEST(ga.hits) AS h
+       WHERE
+         _TABLE_SUFFIX BETWEEN "20210513"
+         AND "20210528"
+       ORDER BY
+         sid,
+         hit_number ) ) )
+ GROUP BY
+   sid )
+WHERE
+ max_time_until_next > 30
+ ORDER BY max_time_until_next DESC

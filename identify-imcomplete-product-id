@@ -1,0 +1,28 @@
+Data scientists always felt like people way smarter beyond me. Because I know they know things I don't even know a hair about. 
+Even if I dare say we all write SQL, this is the only time I solved something that my smart colleague didn't immediately solve at that moment.
+It gave me a flicker of joy. 
+
+The query was written to identify imcomplete product IDs in a dataset. The company I worked for does ecommerce. 
+My colleague flagged that some of the ecommerce events(product detail views, add to cart, etc) had imcomplete values in the `product_id` field. 
+The field looks like this: `BRAND NAME - product SKU`. The imcomplete values mostly containing the brand name only, either with or without '-'.
+So I thought about excluding the case where SKUs properly showed up, as well as the `-`. That became the query below. 
+I shared the query result with our developers, and within short they found out the reason why.  
+
+The URL in the query is used to indicate the actual product, because it contains the sku. 
+
+SELECT
+(select value from unnest(hits.customdimensions) where index = 45) AS url,
+ COUNT(prod.productSKU) AS occurrence,
+ prod.productSKU AS product_sku,
+ eCommerceAction.action_type
+FROM
+ `project.dataset.ga_sessions_*` AS ga,
+ UNNEST(hits) AS hits,
+ UNNEST(hits.product) AS prod
+WHERE
+ _TABLE_SUFFIX BETWEEN '20220301' AND '20220308'
+ AND NOT REGEXP_CONTAINS(prod.productSKU,'[\\d|-]')
+GROUP BY
+ product_sku, url, action_type
+ORDER BY
+ occurrence DESC, product_sku

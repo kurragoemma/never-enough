@@ -1,0 +1,43 @@
+This query has aged so well that I don't have a single memory of it. 
+Judging from what I wrote, I meant to aggregate occurence of event "go to cart" on the hour of the day.
+There must be other ways for the users to visit the shopping cart page. But "go to cart" is a specific feature. 
+I bet it was my colleague who's a product designer that raised this question.
+I loved working with product designers. I loved solving all their questions, big or small.
+
+SELECT eventAction, hour, COUNT(eventAction) AS total_events FROM(
+SELECT eventAction, page,page_type,hour,
+      ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY hitNumber DESC) AS row_number,
+      COUNT(*) OVER (PARTITION BY session_id) AS total_rows
+FROM( 
+   SELECT
+     visitId AS session_id,
+     page.pagePath AS page,
+     eventInfo.eventAction,
+     hitNumber,
+     hour,
+     (
+     SELECT
+       VALUE
+     FROM
+       UNNEST(ga.customDimensions)
+     WHERE
+       INDEX = 26) AS custom_data_source,
+           (
+     SELECT
+       VALUE
+     FROM
+       UNNEST(h.customDimensions)
+     WHERE
+       INDEX = 12) AS page_type
+   FROM `boozt-datalake.46041008.ga_sessions_*` AS ga,
+   UNNEST(ga.hits) AS h
+   WHERE
+     _TABLE_SUFFIX BETWEEN "20220501" AND "20220502"
+     AND h.type="EVENT")
+WHERE REGEXP_CONTAINS(custom_data_source, 'Web Mobile')
+)
+WHERE   total_rows > 2 AND row_number = 1
+AND CONTAINS_SUBSTR(page_type, 'Listing')
+AND CONTAINS_SUBSTR(eventAction, 'go to cart')
+GROUP BY eventAction, hour
+ORDER BY hour DESC

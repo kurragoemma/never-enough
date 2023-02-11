@@ -2,7 +2,7 @@ I had this boss. Well, no words suffice to describe him.
 At the company where I worked with him, the session timeout of Universal Analytics was set to the maximum of four hours, 
 aiming at including as many conversions as possible.  
 One day my boss asked me to change it to 30 minutes instead. And he was certain. 
-And so I did. And another day he told me that our marketing department complained about the dropped conversion rate.
+And so I did. And another day he told me that our marketing department complained about conversion rate dropping.
 He asked me to look into how many the affected users were. And I wrote the query below. 
 They were pretty many :) 
 

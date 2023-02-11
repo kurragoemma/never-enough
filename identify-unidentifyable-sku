@@ -1,0 +1,47 @@
+
+
+SELECT
+  *
+FROM (
+  SELECT
+    service_item_id,
+    sku,
+    service_item_ids
+  FROM (
+    SELECT
+      *
+    FROM (
+      SELECT
+        service_item_id,
+        sku
+      FROM
+        `project.dataset.service_item`) AS service_item
+    LEFT JOIN (
+      SELECT
+        service_item_id AS service_item_ids,
+        name,
+        value
+      FROM
+        `project.dataset.service_item_attribute`
+      WHERE
+        name = 'finance_category') AS service_item_attribute
+    ON
+      service_item.service_item_id = service_item_attribute.service_item_ids )
+  WHERE
+    service_item_ids IS NULL ) AS category
+LEFT JOIN (
+  SELECT
+    REPLACE((REGEXP_EXTRACT(p.productSKU, "- .*")),"- ","") AS Product_SKU,
+    p.productBrand AS Brand
+  FROM
+    `project.dataset.ga_sessions_*` AS ga,
+    UNNEST (ga.hits) AS h,
+    UNNEST (h.product) AS p
+  WHERE
+    _table_suffix BETWEEN '20200901'
+    AND FORMAT_DATE('%Y%m%d',DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY))
+  GROUP BY
+    Product_SKU,
+    Brand) AS GA
+ON
+  category.sku = GA.Product_SKU

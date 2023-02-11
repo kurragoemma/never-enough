@@ -1,0 +1,20 @@
+
+
+SELECT
+total_transactions / days AS avg_daily_transactions
+FROM(
+SELECT COUNT(DISTINCT tId) AS total_transactions,
+COUNT(DISTINCT date) AS days
+FROM(
+SELECT
+date,
+h.transaction.transactionId AS tId,
+SUM(p.productRevenue) AS sum_product_revenue,
+FROM `projectdataset.ga_sessions_*`  AS ga,
+UNNEST(ga.hits) as h, UNNEST(h.product) AS p
+WHERE _TABLE_SUFFIX BETWEEN "20221101" AND "20221105"
+AND regexp_contains(p.v2ProductCategory, '/SPECIALS/')
+GROUP BY date, tId
+)
+WHERE sum_product_revenue > 1500000000
+)

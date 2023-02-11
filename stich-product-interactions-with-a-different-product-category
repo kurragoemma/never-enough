@@ -1,0 +1,79 @@
+Funny enough, the first ad-hoc query I wrote at my last job was the longest.
+ 
+The aim of the query is to stich users' interactions with products with a so called finance category. 
+The categorisation used in ecommerce tracking differs from what's used in a few other teams at this company. 
+A few colleagues from a different team conveyed this wish - to see product interactions categorised in a way they are familiar with. 
+It caused such a fuzz. Everybody imagine the task to be more complicated than necessary. 
+But the word JOIN came into my head. 
+And I started working on the query. Never could I imagine it would take so long. 
+During the time I constantly felt like I had a lump in my chest, which is not painful, but very unsettling. 
+Thanks to another colleague of mine, a female data scientist whom I'm eternally greatful for, I landed with the query below. 
+Thank you N. 
+
+SELECT
+ SKU,
+ Brand,
+ Finance_Category,
+ Product_Detail_Views,
+ Unique_Purchases,
+ Product_Revenue,
+ROUND((CASE
+   WHEN Product_Detail_Views = 0 THEN 0
+ ELSE
+ Adds_To_Cart / Product_Detail_Views
+ END)*100,1) AS Cart_To_Detail_Rate,
+ROUND((CASE
+   WHEN Product_Detail_Views = 0 THEN 0
+ ELSE
+ Unique_Purchases / Product_Detail_Views
+ END)*100,1) AS Buy_To_Detail_Rate
+FROM ((
+   SELECT
+     sku AS SKU,
+     value AS Finance_Category
+     FROM (
+       SELECT
+         service_item_id,
+         sku
+       FROM
+         `project.dataset.service_item`) AS service_item
+     INNER JOIN (
+       SELECT
+         service_item_id AS service_item_ids,
+         name,
+         value
+       FROM
+         `project.dataset.service_item_attribute`
+       WHERE
+         name = 'finance_category') AS service_item_attribute
+     ON
+       service_item.service_item_id = service_item_attribute.service_item_ids) AS category
+ INNER JOIN (
+   SELECT
+     REGEXP_REPLACE(p.productSKU,".* - ","") AS Product_SKU,
+     REGEXP_REPLACE(p.productBrand, "-.*","") AS Brand,
+     COUNT(DISTINCT
+     IF
+       (h.eCommerceAction.action_type = '2',
+         CONCAT(fullVisitorId, CAST(visitId AS STRING), h.time, p.productSKU),
+         NULL)) AS Product_Detail_Views,
+     ROUND(SUM(p.productRevenue)/1000000,1) AS Product_Revenue,
+     COUNT(h.transaction.transactionId) AS Unique_Purchases,
+     COUNT(CASE
+       WHEN h.eCommerceAction.action_type = '3' THEN CONCAT(fullVisitorId, CAST(visitId AS STRING))
+       ELSE
+       NULL
+ END
+   ) AS Adds_To_Cart,
+   FROM
+     `project.dataset.ga_sessions_*` AS ga,
+     UNNEST (ga.hits) AS h,
+     UNNEST (h.product) AS p
+   WHERE
+     _table_suffix BETWEEN '20200915'
+     AND FORMAT_DATE('%Y%m%d',DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY))
+   GROUP BY
+     Product_SKU,
+     Brand) AS GA
+ ON
+   category.sku = GA.Product_SKU )

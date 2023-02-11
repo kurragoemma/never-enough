@@ -29,7 +29,7 @@ FROM (
          h.hitNumber AS hit_number,
          TIMESTAMP_SECONDS(visitStartTime + CAST(h.time/1000 AS INT64)) AS hit_timestamp
        FROM
-         `boozt-datalake.46041008.ga_sessions_*` AS ga,
+         `your_dataset.ga_sessions_*` AS ga,
          UNNEST(ga.hits) AS h
        WHERE
          _TABLE_SUFFIX BETWEEN "20210513"

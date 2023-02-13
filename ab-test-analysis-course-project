@@ -1,0 +1,60 @@
+--This is a course project I did when I was going through Exploratory Analysis on CodeAcademy.
+
+import codecademylib3
+import pandas as pd
+
+ad_clicks = pd.read_csv('ad_clicks.csv')
+print(ad_clicks.head())
+
+#how many views per source
+ad_per=ad_clicks.groupby('utm_source').user_id.count().reset_index()
+print(ad_per)
+
+#create a new column called is_click, using ~, NOT operator
+ad_clicks['is_click'] = ~ad_clicks.ad_click_timestamp.isnull()
+print(ad_clicks.head())
+ 
+#4.grouping by utm_source and is_click and counting the number of user_id‘s in each of those groups
+clicks_by_source = ad_clicks\
+   .groupby(['utm_source',
+             'is_click'])\
+   .user_id.count()\
+   .reset_index()
+
+#6.pivot clicks_by_sourc
+clicks_pivot = clicks_by_source\
+   .pivot(index='utm_source',
+          columns='is_click',
+          values='user_id')\
+   .reset_index()
+print(clicks_pivot)
+
+#7.print numbers of users who were shown Ad A or B
+num=ad_clicks.groupby('experimental_group').user_id.count().reset_index()
+print(num)
+
+#8.check to see if a greater percentage of users clicked on Ad A or Ad B
+perc=ad_clicks.groupby(['experimental_group','is_click']).user_id.count().reset_index()
+print(perc)
+
+a_clicks = ad_clicks[
+   ad_clicks.experimental_group
+   == 'A']
+b_clicks = ad_clicks[
+   ad_clicks.experimental_group
+   == 'B']
+
+#10.For each group (a_clicks and b_clicks), calculate the percent of users who clicked on the ad by day
+a_perf=a_clicks.groupby(['day','is_click']).user_id.count().reset_index()
+print(a_perf)
+a_pivot=a_perf\
+  .pivot(index='day',
+          columns='is_click',
+          values='user_id')\
+   .reset_index()
+print(a_pivot)
+#add a new column of %true
+a_pivot['true_perc']=a_pivot[True]/(a_pivot[True]+a_pivot[False])
+print(a_pivot)
+
+
